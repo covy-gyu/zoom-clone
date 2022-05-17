@@ -1,5 +1,6 @@
 import http from "http";
-import SocketIO from "socket.io";
+import {Server} from "socket.io";
+import {instrument} from "@socket.io/admin-ui"
 //import WebSocket from "ws";
 import express from "express";
 
@@ -14,7 +15,16 @@ app.get("/*", (_, res) => res.redirect("/"));
 const handleListen = () => console.log(`Listening on http://localhost:3000`);
 
 const httpServer = http.createServer(app); //프로토콜이 다른 것을 한 서버에서 사용함
-const wsServer = SocketIO(httpServer);
+const wsServer = new Server(httpServer, {
+    cors: {
+        origin: ["https://admin.socket.io"],
+        credentials: true,
+    },
+});
+
+instrument(wsServer, {
+    auth: false,
+  });
 
 function publicRooms() {
     const {
