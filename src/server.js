@@ -16,6 +16,21 @@ const handleListen = () => console.log(`Listening on http://localhost:3000`);
 const httpServer = http.createServer(app); //프로토콜이 다른 것을 한 서버에서 사용함
 const wsServer = SocketIO(httpServer);
 
+function publicRooms() {
+    const {
+      sockets: {
+        adapter: { sids, rooms },
+      },
+    } = wsServer;
+    const publicRooms = [];
+    rooms.forEach((_, key) => {
+      if (sids.get(key) === undefined) {
+        publicRooms.push(key);
+      }
+    });
+    return publicRooms;
+  }
+
 wsServer.on("connection", socket => {
     socket["nickname"] = "Anon";
     socket.onAny((event) => {
