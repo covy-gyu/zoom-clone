@@ -14,6 +14,7 @@ let myStream;
 let muted = false;
 let cameraOff = false;
 let roomName;
+let myPeerConnection;
 
 async function getCameras() {
   try {
@@ -44,10 +45,10 @@ async function getMedia(deviceId) {
     audio: true,
     video: { deviceId: { exact: deviceId } },
   };
-    try {
-      myStream = await navigator.mediaDevices.getUserMedia(
-        deviceId ? cameraConstraints : initialConstrains
-      );
+  try {
+    myStream = await navigator.mediaDevices.getUserMedia(
+      deviceId ? cameraConstraints : initialConstrains
+    );
     myFace.srcObject = myStream;
     if (!deviceId) {
       await getCameras();
@@ -59,8 +60,8 @@ async function getMedia(deviceId) {
 
 function handleMuteClick() {
   myStream
-  .getAudioTracks()
-  .forEach((track) => (track.enabled = !track.enabled));
+    .getAudioTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
   if (!muted) {
     muteBtn.innerText = "Unmute";
     muted = true;
@@ -71,8 +72,8 @@ function handleMuteClick() {
 }
 function handleCameraClick() {
   myStream
-  .getVideoTracks()
-  .forEach((track) => (track.enabled = !track.enabled));
+    .getVideoTracks()
+    .forEach((track) => (track.enabled = !track.enabled));
   if (cameraOff) {
     cameraBtn.innerText = "Turn Camera Off";
     cameraOff = false;
@@ -95,10 +96,11 @@ camerasSelect.addEventListener("input", handleCameraChange);
 const welcome = document.getElementById("welcome");
 const welcomeForm = welcome.querySelector("form");
 
-function startMedia() {
+async function startMedia() {
   welcome.hidden = true;
   call.hidden = false;
-  getMedia();
+  await getMedia();
+  makeConnection();
 }
 
 function handleWelcomeSubmit(event) {
@@ -113,11 +115,25 @@ welcomeForm.addEventListener("submit", handleWelcomeSubmit);
 
 // Socket Code
 
-socket.on("welcome", () => {
-  console.log("someone joined");
+socket.on("welcome", async () => {
+  const offer = await myPeerConnection.createOffer();
+  myPeerConnection.setLocalDescription(offer);
+  console.log("sent the offer");
+  socket.emit("offer", offer, roomName);
 });
 
+socket.on("offer", (offer) => {
+  console.log(offer);
+});
 
+// RTC Code
+
+function makeConnection() {
+  myPeerConnection = new RTCPeerConnection();
+  myStream
+    .getTracks()
+    .forEach((track) => myPeerConnection.addTrack(track, myStream));
+}
 
 
 
@@ -203,7 +219,7 @@ socket.on("welcome", () => {
 //   socket.emit("enter_room", input.value, showRoom);
 //   roomName = input.value;
 //   input.value="";
-  
+
 // }
 // form.addEventListener("submit",handleRoomSubmit);
 
